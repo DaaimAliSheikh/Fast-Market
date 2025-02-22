@@ -1,50 +1,88 @@
-# Welcome to your Expo app 👋
+# Welcome to FAST MARKET
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+### Key store setup with react-native-firebase and google OAuth:
 
-## Get started
+- To create the android and ios folders `npx expo prebuild`
 
-1. Install dependencies
+- In `/android/app/`
 
-   ```bash
-   npm install
-   ```
+  - debug.keystore (default to be used, but also have to be copied to /home/daaim/.android/ folder)
+  - my-upload-key.keystore (to be created)
 
-2. Start the app
+- creating the release my-upload-key.keystore:
+  `keytool -genkeypair -v -storetype PKCS12 -keystore my-upload-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000`
 
-   ```bash
-    npx expo start
-   ```
+- Setup up variables in `/android/gradle.properties`:
 
-In the output, you'll find options to open the app in a
+  ```MYAPP_UPLOAD_STORE_FILE=my-upload-key.keystore
+   MYAPP_UPLOAD_KEY_ALIAS=my-key-alias
+   MYAPP_UPLOAD_STORE_PASSWORD=123456
+   MYAPP_UPLOAD_KEY_PASSWORD=123456
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+  ```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- Modify `/android/app/build.gradle`:
 
-## Get a fresh project
+  ```
+  signingConfigs {
+       debug {
+           storeFile file('debug.keystore')
+           storePassword 'android'
+           keyAlias 'androiddebugkey'
+           keyPassword 'android'
+       }
 
-When you're ready, run:
+       //// add below config
+       release {
+           if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+               storeFile file('./my-upload-key.keystore')
+               storePassword MYAPP_UPLOAD_STORE_PASSWORD
+               keyAlias MYAPP_UPLOAD_KEY_ALIAS
+               keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+           }
+       }
+   }
+  buildTypes {
+       debug {
+           signingConfig signingConfigs.debug
+       }
+       release {
+           signingConfig signingConfigs.release  ///changed this to release
+           shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
+           minifyEnabled enableProguardInReleaseBuilds
+           proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+           crunchPngs (findProperty('android.enablePngCrunchInReleaseBuilds')?.toBoolean() ?: true)
+       }
+   }
+  ```
 
-```bash
-npm run reset-project
-```
+- To get SHA-1 and SHA-256 keys for both release and debug builds:
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+  `cd android && ./gradlew signingReport`
 
-## Learn more
+- Firebase console setup:
 
-To learn more about developing your project with Expo, look at the following resources:
+  - Create android app
+  - Add all SHA keys(debug and release, SHA-1 and SHA-256) and download the google-services.json file and place it in root of your project,
+    and add it to .gitignore
+  - In app.json:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+  ```
+  "android": {
+     "adaptiveIcon": {
+       "foregroundImage": "./assets/images/adaptive-icon.png",
+       "backgroundColor": "#ffffff"
+     },
+     "package": "com.daaimali.fastmarket",
+     "googleServicesFile": "./google-services.json"
+   },
 
-## Join the community
+  ```
 
-Join our community of developers creating universal apps.
+### Building the application
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Optimized release verison
+  `npx expo run:android --variant release`
+
+- Debug version with live reload(connect real device via USB, enable developer mode on the device, enable USB debugging, and select File transfer mode when prompted):
+  `npx expo run:android --device`

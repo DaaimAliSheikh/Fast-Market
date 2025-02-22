@@ -17,7 +17,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.daaimali.fastmarket"
+      "package": "com.daaimali.fastmarket",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -26,7 +27,7 @@
     },
     "plugins": [
       "expo-router",
-     
+     "@react-native-google-signin/google-signin",
       [
         "expo-splash-screen",
         {

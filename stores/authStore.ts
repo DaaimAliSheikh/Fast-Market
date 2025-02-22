@@ -3,34 +3,29 @@ import { create } from "zustand";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signOut,
   User,
-  signInWithCredential,
-  GoogleAuthProvider,
 } from "firebase/auth";
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import {
   GoogleSignin,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
-import { auth } from "../firebase/config";
+import { auth as configAuth } from "../firebase/config";
 import errorMessages from "@/firebase/errorMessages";
-
-// Configure Google Sign-In
 GoogleSignin.configure({
   webClientId:
-    "804166405034-60gj29modojbnnv9vbaj3ii4eguc82sm.apps.googleusercontent.com", // Get this from Firebase Console
-  offlineAccess: true,
+    "804166405034-60gj29modojbnnv9vbaj3ii4eguc82sm.apps.googleusercontent.com", ///from firebase console
 });
 
 interface AuthState {
-  user: User | null;
+  user: User | FirebaseAuthTypes.User | null;
   loading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   logOut: () => Promise<void>;
   setUser: (user: User | null) => void;
-  signInWithGoogle: () => Promise<User>;
+  signInWithGoogle: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -41,7 +36,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const userCredential = await signInWithEmailAndPassword(
-        auth,
+        configAuth,
         email,
         password
       );
@@ -60,7 +55,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const userCredential = await createUserWithEmailAndPassword(
-        auth,
+        configAuth,
         email,
         password
       );
@@ -72,52 +67,57 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   logOut: async () => {
+    set({ loading: true, error: null });
     try {
-      // Check if user signed in with Google
-      const user = get().user;
-      if (
-        user &&
-        user.providerData.some(
-          (provider) => provider.providerId === "google.com"
-        )
-      ) {
-        await GoogleSignin.revokeAccess();
-        await GoogleSignin.signOut();
-      }
       // Sign out from Firebase (works for all auth methods)
-      await auth.signOut();
+      await configAuth.signOut();
+      set({ user: null });
     } catch (error: any) {
-      throw new Error("Error signing out: " + error.message);
+      set({ error: "Error signing out: " + error.message });
+    } finally {
+      set({ loading: false });
     }
   },
   setUser: (user) => set({ user }),
   signInWithGoogle: async () => {
     // Implement Google sign-in logic here
+    set({ loading: true, error: null });
     try {
-      // Check if device supports Google Play
-      await GoogleSignin.hasPlayServices();
+      // Check if your device supports Google Play
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
+      // Get the users ID token
+      const signInResult = await GoogleSignin.signIn();
 
-      // Get user ID token
-      const { data } = await GoogleSignin.signIn();
-      if (!data) throw new Error("Could not get user");
-      const { idToken } = data;
+      // Try the new style of google-sign in result, from v13+ of that module
+      let idToken = signInResult.data?.idToken;
+
+      if (!idToken) {
+        set({ error: "could not get user" });
+        return;
+      }
+
       // Create a Google credential with the token
-      const credential = GoogleAuthProvider.credential(idToken);
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      const userCredential = await auth().signInWithCredential(
+        googleCredential
+      );
 
-      // Sign in to Firebase with the Google credential
-      const result = await signInWithCredential(auth, credential);
-
-      return result.user;
+      // Sign-in the user with the credential
+      set({ user: userCredential.user });
     } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        throw new Error("User cancelled the login flow");
+        set({ error: "User cancelled the login flow" });
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        throw new Error("Sign in is already in progress");
+        set({ error: "Sign in is already in progress" });
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        throw new Error("Play services not available");
+        set({ error: "Play services not available" });
       } else {
-        throw new Error("Something went wrong: " + error.message);
+        set({ error: "Something went wrong: " + error.message });
       }
+    } finally {
+      set({ loading: false });
     }
   },
 }));

@@ -19,7 +19,7 @@ export default function LoginScreen() {
     await signIn(email, password);
     if (!error) {
       router.replace("/dashboard");
-    } 
+    }
   };
 
   return (

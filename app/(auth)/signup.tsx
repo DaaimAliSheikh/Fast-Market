@@ -1,12 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Toast, ToastTitle, useToast } from "@/components/ui/toast";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
 import { Link, LinkText } from "@/components/ui/link";
-import * as Google from "expo-auth-session/providers/google";
-import { GoogleAuthProvider } from "firebase/auth";
 
 import {
   FormControl,
@@ -240,7 +238,7 @@ export default function () {
             variant="outline"
             action="secondary"
             className="w-full gap-1"
-            onPress={() => {}}
+            onPress={async () => await signInWithGoogle()}
           >
             <ButtonText className="font-medium">
               Continue with Google

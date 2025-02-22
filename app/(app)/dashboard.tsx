@@ -17,15 +17,11 @@ const Dashboard = () => {
       </TouchableOpacity>
       <TouchableOpacity
         className="w-full max-w-xs p-3 mt-3 border border-gray-300 rounded items-center"
+        onPress={async () => {
+          await logOut();
+        }}
       >
-        <Text
-          className="text-gray-700"
-          onPress={async () => {
-            await logOut();
-          }}
-        >
-          Logout
-        </Text>
+        <Text className="text-gray-700">Logout</Text>
       </TouchableOpacity>
     </View>
   );
