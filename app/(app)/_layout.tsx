@@ -1,12 +1,12 @@
 import { Redirect, Slot } from "expo-router";
 import { useAuthStore } from "../../stores/authStore";
+import LoadingPage from "@/components/LoadingPage";
 
 export default function AppLayout() {
-  const { user } = useAuthStore();
+  const { user, loading } = useAuthStore();
 
-  if (!user) {
-    return <Redirect href="/(auth)/login" />;
-  }
+  if (loading) return <LoadingPage />;
+  else if (!user) return <Redirect href="/(auth)/login" />;
   //render index which redirects to dashboard
-  return <Slot />;
+  else return <Slot />;
 }

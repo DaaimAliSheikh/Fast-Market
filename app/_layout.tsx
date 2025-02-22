@@ -20,7 +20,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GluestackUIProvider mode="dark">
+    <GluestackUIProvider  mode="dark">
       <Slot />
     </GluestackUIProvider>
   );
