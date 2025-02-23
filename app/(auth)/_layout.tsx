@@ -3,6 +3,6 @@ import { useAuthStore } from "../../stores/authStore";
 
 export default function AppLayout() {
   const { user } = useAuthStore();
-   if (user) return <Redirect href="/(app)/dashboard" />;
+  if (user) return <Redirect href="/(app)/dashboard" />;
   else return <Slot />;
 }

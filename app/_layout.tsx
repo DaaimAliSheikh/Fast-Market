@@ -10,7 +10,6 @@ export default function RootLayout() {
 
   // This listener automatically checks token validity with Firebase, on mount
   // If token expired/invalid, user will be set to null
- 
 
   useEffect(() => {
     const subscriber = auth().onAuthStateChanged((user) => {
@@ -21,6 +20,7 @@ export default function RootLayout() {
 
   return (
     <GluestackUIProvider mode="dark">
+      
       <Slot />
     </GluestackUIProvider>
   );
