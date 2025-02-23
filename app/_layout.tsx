@@ -2,8 +2,7 @@ import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { Slot } from "expo-router";
 import { useAuthStore } from "../stores/authStore";
 import { useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebase/config";
+import auth from "@react-native-firebase/auth";
 import "@/global.css";
 
 export default function RootLayout() {
@@ -11,16 +10,17 @@ export default function RootLayout() {
 
   // This listener automatically checks token validity with Firebase, on mount
   // If token expired/invalid, user will be set to null
+ 
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const subscriber = auth().onAuthStateChanged((user) => {
       setUser(user);
     });
-
-    return () => unsubscribe();
+    return subscriber; // unsubscribe on unmount
   }, []);
 
   return (
-    <GluestackUIProvider  mode="dark">
+    <GluestackUIProvider mode="dark">
       <Slot />
     </GluestackUIProvider>
   );

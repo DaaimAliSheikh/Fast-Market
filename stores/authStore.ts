@@ -1,16 +1,14 @@
 // stores/authStore.ts
 import { create } from "zustand";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  User,
-} from "firebase/auth";
-import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
+
+import auth, {
+  FirebaseAuthTypes,
+  sendPasswordResetEmail,
+} from "@react-native-firebase/auth";
 import {
   GoogleSignin,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
-import { auth as configAuth } from "../firebase/config";
 import errorMessages from "@/firebase/errorMessages";
 GoogleSignin.configure({
   webClientId:
@@ -18,34 +16,32 @@ GoogleSignin.configure({
 });
 
 interface AuthState {
-  user: User | FirebaseAuthTypes.User | null;
+  user: FirebaseAuthTypes.User | null;
   loading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   logOut: () => Promise<void>;
-  setUser: (user: User | null) => void;
+  setUser: (user: FirebaseAuthTypes.User | null) => void;
   signInWithGoogle: () => Promise<void>;
+  resetPasswordEmail: (email: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   loading: false,
   error: null,
+  setUser: (user) => set({ user }),
   signIn: async (email, password) => {
     set({ loading: true, error: null });
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        configAuth,
-        email,
-        password
-      );
-      set({ user: userCredential.user });
+      await auth().signInWithEmailAndPassword(email, password);
+      ///onauthstatechanged in the root layout will handle setting the user state
     } catch (error: any) {
       set({
         error:
           errorMessages.get(error.code) ||
-          "An unexpected error occurred. Please try again.",
+          "An unexpected error occurred when signing in. Please try again later.",
       });
     } finally {
       set({ loading: false });
@@ -54,31 +50,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signUp: async (email, password) => {
     set({ loading: true, error: null });
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        configAuth,
-        email,
-        password
-      );
-      set({ user: userCredential.user });
+      await auth().createUserWithEmailAndPassword(email, password);
+      ///onauthstatechanged in the root layout will handle setting the user state
     } catch (error: any) {
-      set({ error: error.message });
+      set({
+        error:
+          errorMessages.get(error.code) ||
+          "An unexpected error occurred when signing up. Please try again later.",
+      });
     } finally {
       set({ loading: false });
     }
   },
-  logOut: async () => {
-    set({ loading: true, error: null });
-    try {
-      // Sign out from Firebase (works for all auth methods)
-      await configAuth.signOut();
-      set({ user: null });
-    } catch (error: any) {
-      set({ error: "Error signing out: " + error.message });
-    } finally {
-      set({ loading: false });
-    }
-  },
-  setUser: (user) => set({ user }),
+
   signInWithGoogle: async () => {
     // Implement Google sign-in logic here
     set({ loading: true, error: null });
@@ -100,12 +84,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Create a Google credential with the token
       const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-      const userCredential = await auth().signInWithCredential(
-        googleCredential
-      );
+      await auth().signInWithCredential(googleCredential);
 
-      // Sign-in the user with the credential
-      set({ user: userCredential.user });
+      ///onauthstatechanged in the root layout will handle setting the user state
     } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         set({ error: "User cancelled the login flow" });
@@ -116,6 +97,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       } else {
         set({ error: "Something went wrong: " + error.message });
       }
+    } finally {
+      set({ loading: false });
+    }
+  },
+  resetPasswordEmail: async (email: string) => {
+    set({ loading: true, error: null });
+    try {
+      console.log("sending password reset email to ", email);
+
+      await sendPasswordResetEmail(auth(), email);
+    } catch (error: any) {
+      set({
+        error:
+          errorMessages.get(error.code) ||
+          "An unexpected error occurred. Please try again later.",
+      });
+    } finally {
+      set({ loading: false });
+    }
+  },
+  logOut: async () => {
+    set({ loading: true, error: null });
+    try {
+      // Sign out from Firebase (works for all auth methods)
+      GoogleSignin.revokeAccess(); ///forgets the user so next time user clicks on sign in, he is shown the user selection screen instead of automatically signing in with previous user
+      await auth().signOut();
+      ///onauthstatechanged in the root layout will handle setting the user state
+    } catch (error: any) {
+      set({
+        error:
+          errorMessages.get(error.code) ||
+          "An unexpected error occurred when signing out. Please try again later.",
+      });
     } finally {
       set({ loading: false });
     }

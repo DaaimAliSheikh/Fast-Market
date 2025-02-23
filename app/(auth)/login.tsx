@@ -1,68 +1,209 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { HStack } from "@/components/ui/hstack";
+import { VStack } from "@/components/ui/vstack";
+import { Heading } from "@/components/ui/heading";
+import { Text } from "@/components/ui/text";
+import { Link, LinkText } from "@/components/ui/link";
+
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
-import { useAuthStore } from "../../stores/authStore";
-import { useRouter } from "expo-router";
+  FormControl,
+  FormControlError,
+  FormControlErrorIcon,
+  FormControlErrorText,
+  FormControlLabel,
+  FormControlLabelText,
+} from "@/components/ui/form-control";
+import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 
-export default function LoginScreen() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const { signIn, error, loading } = useAuthStore();
-  const router = useRouter();
+import { EyeIcon, EyeOffIcon } from "@/components/ui/icon";
+import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
+import { Image, Keyboard } from "react-native";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle } from "lucide-react-native";
+import GoogleIcon from "./icons/google";
+import {
+  SignInFormDataSchema,
+  SignInFormDataType,
+} from "@/schemas/SignInFormData";
+import { useAuthStore } from "@/stores/authStore";
+import { router } from "expo-router";
+import { Divider } from "@/components/ui/divider";
+import LoadingPage from "@/components/LoadingPage";
 
-  const handleLogin = async () => {
+export default function () {
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<SignInFormDataType>({
+    resolver: zodResolver(SignInFormDataSchema),
+  });
+  const { signIn, signInWithGoogle, error, loading } = useAuthStore();
+
+  const onSubmit = async (data: SignInFormDataType) => {
+    const { email, password } = data;
+
     await signIn(email, password);
-    if (!error) {
-      router.replace("/dashboard");
-    }
+  };
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleState = () => {
+    setShowPassword((showState) => {
+      return !showState;
+    });
   };
 
-  return (
-    <View className="flex-1 justify-center items-center p-4 bg-white">
-      <Text className="text-2xl mb-4">Login</Text>
-      <View className="w-full max-w-xs mb-3">
-        <Text className="mb-1 text-gray-700">Email</Text>
-        <TextInput
-          className="w-full p-3 border border-gray-300 rounded"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Enter your email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-      </View>
-      <View className="w-full max-w-xs mb-3">
-        <Text className="mb-1 text-gray-700">Password</Text>
-        <TextInput
-          className="w-full p-3 border border-gray-300 rounded"
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Enter your password"
-          secureTextEntry
-        />
-      </View>
-      {error ? <Text className="text-red-500 mb-3">{error}</Text> : null}
-      <TouchableOpacity
-        className={`w-full max-w-xs p-3 bg-blue-500 rounded items-center ${
-          loading ? "opacity-50" : ""
-        }`}
-        onPress={handleLogin}
-        disabled={loading}
+  const handleKeyPress = () => {
+    Keyboard.dismiss();
+    handleSubmit(onSubmit)();
+  };
+  useEffect(() => {
+    if (error) setError("email", { message: error }, { shouldFocus: true });
+  }, [error]);
+  if (loading) return <LoadingPage />;
+  else
+    return (
+      <VStack
+        className="max-w-[440px] items p-4 px-8  h-full w-full bg-background-50"
+        space="md"
       >
-        <Text className="text-white">Login</Text>
-      </TouchableOpacity>
-      {loading && <ActivityIndicator className="mt-3" />}
-      <TouchableOpacity
-        className="w-full max-w-xs p-3 mt-3 border border-gray-300 rounded items-center"
-        onPress={() => router.push("/(auth)/signup")}
-      >
-        <Text className="text-gray-700">Create Account</Text>
-      </TouchableOpacity>
-    </View>
-  );
+        <HStack space="md" className="md:text-center mx-auto items-center mt-8">
+          <Image
+            className="h-20 w-20 "
+            source={require("../../assets/FAST-LOGO.png")}
+          />
+          <VStack>
+            <Heading size="3xl" className="">
+              FAST
+            </Heading>
+            <Heading size="3xl" className=" font-light">
+              MARKET
+            </Heading>
+          </VStack>
+        </HStack>
+        <Heading className=" color-primary-300 mx-auto" size="sm">
+          The Marketplace for Fastians
+        </Heading>
+        <VStack className="md:items-center mt-4" space="md">
+          <VStack>
+            <Heading className="md:text-center  mb-4" size="2xl">
+              Sign In
+            </Heading>
+            <Text>Sign up and start listing your products</Text>
+          </VStack>
+        </VStack>
+        <VStack className="w-full">
+          <VStack space="xl" className="w-full">
+            <FormControl isInvalid={!!errors.email}>
+              <FormControlLabel>
+                <FormControlLabelText>Email</FormControlLabelText>
+              </FormControlLabel>
+              <Controller
+                name="email"
+                defaultValue=""
+                control={control}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Input>
+                    <InputField
+                      className="text-sm"
+                      placeholder="Email"
+                      type="text"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      onSubmitEditing={handleKeyPress}
+                      returnKeyType="done"
+                    />
+                  </Input>
+                )}
+              />
+              <FormControlError>
+                <FormControlErrorIcon size="md" as={AlertTriangle} />
+                <FormControlErrorText>
+                  {errors?.email?.message}
+                </FormControlErrorText>
+              </FormControlError>
+            </FormControl>
+            <FormControl isInvalid={!!errors.password}>
+              <FormControlLabel>
+                <FormControlLabelText>Password</FormControlLabelText>
+              </FormControlLabel>
+              <Controller
+                defaultValue=""
+                name="password"
+                control={control}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Input>
+                    <InputField
+                      className="text-sm"
+                      placeholder="Password"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      onSubmitEditing={handleKeyPress}
+                      returnKeyType="done"
+                      type={showPassword ? "text" : "password"}
+                    />
+                    <InputSlot onPress={handleState} className="pr-3">
+                      <InputIcon as={showPassword ? EyeIcon : EyeOffIcon} />
+                    </InputSlot>
+                  </Input>
+                )}
+              />
+              <FormControlError>
+                <FormControlErrorIcon size="sm" as={AlertTriangle} />
+                <FormControlErrorText>
+                  {errors?.password?.message}
+                </FormControlErrorText>
+              </FormControlError>
+            </FormControl>
+          </VStack>
+
+          <VStack className="w-full gap-6 mt-4" space="lg">
+            <Link onPress={() => router.push("/(auth)/forgot-password")}>
+              <LinkText className="font-medium text-sm text-primary-700 group-hover/link:text-primary-600">
+                Forgot Password?
+              </LinkText>
+            </Link>
+            <Button
+              className="w-full bg-primary-500"
+              onPress={handleSubmit(onSubmit)}
+            >
+              <ButtonText className="font-medium text-typography-900">
+                Sign In
+              </ButtonText>
+            </Button>
+            <HStack className="self-center items-center " space="md">
+              <Divider />
+              <Text>or</Text>
+              <Divider />
+            </HStack>
+
+            <Button
+              variant="outline"
+              className="w-full gap-1"
+              onPress={async () => await signInWithGoogle()}
+            >
+              <ButtonText className="font-medium">
+                Continue with Google
+              </ButtonText>
+              <ButtonIcon as={GoogleIcon} />
+            </Button>
+          </VStack>
+          <HStack className="self-center my-6" space="sm">
+            <Text size="md">Don't have an account?</Text>
+            <Link onPress={() => router.push("/(auth)/signup")}>
+              <LinkText
+                className="font-medium text-primary-700 group-hover/link:text-primary-600  group-hover/pressed:text-primary-700"
+                size="md"
+              >
+                Sign up
+              </LinkText>
+            </Link>
+          </HStack>
+        </VStack>
+      </VStack>
+    );
 }
