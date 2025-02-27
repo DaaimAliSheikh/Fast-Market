@@ -11,6 +11,7 @@ expo-env.d.ts
 android/
 ios/
 google-services.json
+google-services.base64
 
 # Native
 *.orig.*
