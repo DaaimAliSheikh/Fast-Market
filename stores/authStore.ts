@@ -77,7 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       let idToken = signInResult.data?.idToken;
 
       if (!idToken) {
-        return "Could not sign in user";
+        return "Sign in cancelled";
       }
 
       // Create a Google credential with the token
