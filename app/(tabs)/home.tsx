@@ -1,18 +1,35 @@
 import { Button, ButtonText } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
 import React from "react";
-import { Text, View } from "react-native";
+import { Keyboard, Text, View } from "react-native";
+import { Input, InputField } from "@/components/ui/input";
+import { TouchableWithoutFeedback } from "react-native";
 
-const Index = () => {
+const Home = () => {
   const { logOut } = useAuthStore();
   return (
-    <View>
-      <Text>Home page</Text>
-      <Button onPress={async () => await logOut()}>
-        <ButtonText>Logout</ButtonText>
-      </Button>
-    </View>
+    <TouchableWithoutFeedback
+      onPress={() => Keyboard.dismiss()}
+      accessible={false}
+    >
+      <View className="flex-1">
+        <Text>Home page</Text>
+        <Button onPress={async () => await logOut()}>
+          <ButtonText>Logout</ButtonText>
+        </Button>
+        <Input
+          className="mt-6"
+          variant="outline"
+          size="md"
+          isDisabled={false}
+          isInvalid={false}
+          isReadOnly={false}
+        >
+          <InputField placeholder="Enter Text here..." />
+        </Input>
+      </View>
+    </TouchableWithoutFeedback>
   );
 };
 
-export default Index;
+export default Home;

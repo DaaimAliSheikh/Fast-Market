@@ -13,12 +13,17 @@ GoogleSignin.configure({
   webClientId:
     "804166405034-60gj29modojbnnv9vbaj3ii4eguc82sm.apps.googleusercontent.com", ///from firebase console
 });
+import firestore from "@react-native-firebase/firestore";
 
 interface AuthState {
   user: FirebaseAuthTypes.User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | undefined>;
-  signUp: (email: string, password: string) => Promise<string | undefined>;
+  signUp: (
+    displayName: string,
+    email: string,
+    password: string
+  ) => Promise<string | undefined>;
   logOut: () => Promise<string | undefined>;
   setUser: (user: FirebaseAuthTypes.User | null) => void;
   signInWithGoogle: () => Promise<string | undefined>;
@@ -45,14 +50,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ loading: false });
     }
   },
-  signUp: async (email, password) => {
+  signUp: async (displayName, email, password) => {
     set({ loading: true });
     try {
       const userCredential = await auth().createUserWithEmailAndPassword(
         email,
         password
       );
-      set({ user: userCredential.user }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
+      await userCredential.user.updateProfile({ displayName });
+
+      // Reload the user to apply the profile updates
+      await userCredential.user.reload();
+
+      // Optionally, fetch the updated user
+      const updatedUser = auth().currentUser;
+      await firestore().collection("users").add({
+        uid: updatedUser?.uid,
+        displayName: updatedUser?.displayName,
+        email: updatedUser?.email,
+        photoURL: updatedUser?.photoURL,
+      });
+      set({ user: updatedUser }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
 
       ///onauthstatechanged in the root layout will handle setting the user state
     } catch (error: any) {
@@ -85,6 +103,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const userCredential = await auth().signInWithCredential(
         googleCredential
       );
+      const user = userCredential.user;
+      await firestore().collection("users").add({
+        uid: user?.uid,
+        displayName: user?.displayName,
+        email: user?.email,
+        photoURL: user?.photoURL,
+      });
       set({ user: userCredential.user }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
 
       ///onauthstatechanged in the root layout will handle setting the user state

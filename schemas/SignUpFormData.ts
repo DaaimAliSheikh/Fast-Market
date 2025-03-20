@@ -1,5 +1,6 @@
 import { z } from "zod";
 const SignUpFormDataSchema = z.object({
+  displayName: z.string().min(6, "Must be at least 8 characters in length"),
   email: z.string().min(1, "Email is required").email(),
   password: z
     .string()

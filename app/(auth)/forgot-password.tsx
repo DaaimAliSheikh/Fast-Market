@@ -29,8 +29,8 @@ import { LinkText, Link } from "@/components/ui/link";
 import { router } from "expo-router";
 import LoadingPage from "@/components/LoadingPage";
 import { ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import GradientText from "@/components/ui/gradient-text";
+import { TouchableWithoutFeedback } from "react-native";
 
 export default function () {
   const {
@@ -72,7 +72,10 @@ export default function () {
   if (loading) return <LoadingPage />;
   else
     return (
-      <SafeAreaView>
+      <TouchableWithoutFeedback
+        onPress={() => Keyboard.dismiss()}
+        accessible={false}
+      >
         <ScrollView>
           <VStack
             className="max-w-[440px] items p-4 px-8  h-full w-full"
@@ -164,6 +167,6 @@ export default function () {
             </VStack>
           </VStack>
         </ScrollView>
-      </SafeAreaView>
+      </TouchableWithoutFeedback>
     );
 }

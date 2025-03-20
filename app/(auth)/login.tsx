@@ -18,7 +18,7 @@ import GradientText from "@/components/ui/gradient-text";
 
 import { EyeIcon, EyeOffIcon } from "@/components/ui/icon";
 import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
-import { Image, Keyboard } from "react-native";
+import { Image, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react-native";
@@ -33,7 +33,6 @@ import LoadingPage from "@/components/LoadingPage";
 import { ScrollView } from "react-native";
 import { Toast, ToastTitle, useToast } from "@/components/ui/toast";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function () {
   const {
@@ -84,7 +83,10 @@ export default function () {
   if (loading) return <LoadingPage />;
   else
     return (
-      <SafeAreaView className="flex-1">
+      <TouchableWithoutFeedback
+        onPress={() => Keyboard.dismiss()}
+        accessible={false}
+      >
         <ScrollView>
           <VStack className="max-w-[440px]  p-4 px-8  " space="md">
             <HStack
@@ -244,6 +246,6 @@ export default function () {
             </VStack>
           </VStack>
         </ScrollView>
-      </SafeAreaView>
+      </TouchableWithoutFeedback>
     );
 }

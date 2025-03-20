@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Heading } from "@/components/ui/heading";
@@ -17,7 +17,12 @@ import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 
 import { EyeIcon, EyeOffIcon } from "@/components/ui/icon";
 import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
-import { Image, Keyboard, ScrollView } from "react-native";
+import {
+  Image,
+  Keyboard,
+  ScrollView,
+  TouchableWithoutFeedback,
+} from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react-native";
@@ -31,7 +36,6 @@ import { router } from "expo-router";
 import { Divider } from "@/components/ui/divider";
 import LoadingPage from "@/components/LoadingPage";
 import { Toast, ToastTitle, useToast } from "@/components/ui/toast";
-import { SafeAreaView } from "react-native-safe-area-context";
 import GradientText from "@/components/ui/gradient-text";
 
 export default function () {
@@ -46,7 +50,7 @@ export default function () {
   const { signUp, signInWithGoogle, loading } = useAuthStore();
 
   const onSubmit = async (data: SignUpFormDataType) => {
-    const { email, password, confirmpassword } = data;
+    const { displayName, email, password, confirmpassword } = data;
     if (password !== confirmpassword) {
       setError(
         "password",
@@ -59,7 +63,9 @@ export default function () {
         { shouldFocus: true }
       );
     } else {
-      const error = await signUp(email, password);
+      const error = await signUp(displayName, email, password);
+      if (!error) return;
+
       if (error === "auth/email-already-in-use")
         setError(
           "email",
@@ -97,7 +103,10 @@ export default function () {
   if (loading) return <LoadingPage />;
   else
     return (
-      <SafeAreaView className="flex-1">
+      <TouchableWithoutFeedback
+        onPress={() => Keyboard.dismiss()}
+        accessible={false}
+      >
         <ScrollView>
           <VStack
             className="max-w-[440px] items p-4 px-8  h-full w-full "
@@ -131,8 +140,38 @@ export default function () {
                 <Text>Sign up and start listing your products</Text>
               </VStack>
             </VStack>
-            <VStack className="w-full">
+            <VStack className="w-full pb-8">
               <VStack space="xl" className="w-full">
+                <FormControl isInvalid={!!errors.displayName}>
+                  <FormControlLabel>
+                    <FormControlLabelText>Username</FormControlLabelText>
+                  </FormControlLabel>
+                  <Controller
+                    name="displayName"
+                    defaultValue=""
+                    control={control}
+                    render={({ field: { onChange, onBlur, value } }) => (
+                      <Input>
+                        <InputField
+                          className="text-sm"
+                          placeholder="Username"
+                          type="text"
+                          value={value}
+                          onChangeText={onChange}
+                          onBlur={onBlur}
+                          onSubmitEditing={handleKeyPress}
+                          returnKeyType="done"
+                        />
+                      </Input>
+                    )}
+                  />
+                  <FormControlError>
+                    <FormControlErrorIcon size="md" as={AlertTriangle} />
+                    <FormControlErrorText>
+                      {errors?.displayName?.message}
+                    </FormControlErrorText>
+                  </FormControlError>
+                </FormControl>
                 <FormControl isInvalid={!!errors.email}>
                   <FormControlLabel>
                     <FormControlLabelText>Email</FormControlLabelText>
@@ -294,6 +333,6 @@ export default function () {
             </VStack>
           </VStack>
         </ScrollView>
-      </SafeAreaView>
+      </TouchableWithoutFeedback>
     );
 }
