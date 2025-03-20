@@ -1,6 +1,7 @@
 import { Redirect, Tabs } from "expo-router";
 import { useAuthStore } from "../../stores/authStore";
 import LoadingPage from "@/components/LoadingPage";
+import { Home, MessageCircle, Plus, User } from "lucide-react-native";
 
 export default function AppLayout() {
   const { user, loading } = useAuthStore();
@@ -17,19 +18,36 @@ export default function AppLayout() {
         }}
       >
         {/* order matters of tab screens, top one is rendered first */}
-        <Tabs.Screen name="home" options={{ title: "Home", tabBarBadge: 1 }} />
+        <Tabs.Screen
+          name="home"
+          options={{
+            title: "Home",
+            tabBarIcon: ({ color }) => <Home color={color} />,
+          }}
+        />
         <Tabs.Screen
           name="createListing"
-          options={{ title: "Add", tabBarBadge: 1 }}
+          options={{
+            title: "Add Listing",
+            tabBarIcon: ({ color }) => <Plus color={color} />,
+          }}
         />
 
         <Tabs.Screen
           name="(chats)"
-          options={{ title: "Chats", headerShown: false }}
+          options={{
+            title: "Chats",
+            headerShown: false,
+            tabBarIcon: ({ color }) => <MessageCircle color={color} />,
+          }}
         />
-        <Tabs.Screen name="profile" options={{ title: "Profile" }} />
-
-        {/* <Tabs.Screen options={{ title: "Home Tab" }} /> */}
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: "Profile",
+            tabBarIcon: ({ color }) => <User color={color} />,
+          }}
+        />
       </Tabs>
     );
 }
