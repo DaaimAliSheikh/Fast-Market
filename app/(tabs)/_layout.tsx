@@ -13,6 +13,11 @@ export default function AppLayout() {
       <Tabs
         screenOptions={{
           tabBarStyle: { height: 60, paddingTop: 3 }, // Adjust the height as needed
+          headerStyle: {
+            backgroundColor: "transparent",
+            height: 60,
+          },
+          headerShadowVisible: false,
           tabBarHideOnKeyboard: true,
           animation: "shift",
         }}
