@@ -5,7 +5,7 @@ interface Message {
   senderId: string;
   text: string;
   timestamp: FirebaseFirestoreTypes.Timestamp;
-  readBy: string[];
+  readBy: string[]; ///user ids of users who have read the message
 }
 
 export default Message;

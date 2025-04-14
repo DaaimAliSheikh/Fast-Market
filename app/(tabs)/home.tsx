@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ScrollView, View } from "react-native";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { SearchIcon, Heart } from "lucide-react-native";
@@ -10,47 +10,49 @@ import { Text } from "@/components/ui/text";
 import { Image } from "@/components/ui/image";
 import { VStack } from "@/components/ui/vstack";
 import { Icon } from "@/components/ui/icon";
-import {
-  Avatar,
-  AvatarFallbackText,
-  AvatarImage,
-} from "@/components/ui/avatar";
-import { Card } from "@/components/ui/card";
-import { Heading } from "@/components/ui/heading";
+import firestore from "@react-native-firebase/firestore";
 import {
   Actionsheet,
   ActionsheetContent,
-  ActionsheetItem,
-  ActionsheetItemText,
   ActionsheetDragIndicator,
   ActionsheetDragIndicatorWrapper,
   ActionsheetBackdrop,
 } from "@/components/ui/actionsheet";
+import { TouchableOpacity } from "react-native";
+import HighlightText from "@/utils/HighlightText";
+import ModalContent from "@/components/ModalContent";
+import Product from "@/types/Product";
 // Tabs Component
-const HomestayInfoTabs = ({ tabs, activeTab, setActiveTab }: any) => {
+const HomestayInfoTabs = ({
+  categories,
+  activeCategory,
+  setActiveCategory,
+}: any) => {
   return (
     <Box className="border-b border-outline-50  mb-2 md:border-b-0 md:border-transparent">
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <HStack space="lg" className="mx-0.5 xl:gap-5 2xl:gap-6">
-          {tabs.map((tab: any) => (
+          {categories.map((cat: string) => (
             <Pressable
-              key={tab.title}
+              key={cat}
               className={`my-0.5 p-2 ${
-                activeTab === tab ? "border-b-[3px]" : "border-b-0"
+                activeCategory === cat ? "border-b-[3px]" : "border-b-0"
               } border-primary-600 hover:border-b-[3px] ${
-                activeTab === tab
+                activeCategory === cat
                   ? "hover:border-outline-900"
                   : "hover:border-outline-200"
               }`}
-              onPress={() => setActiveTab(tab)}
+              onPress={() => setActiveCategory(cat)}
             >
               <Text
                 size="sm"
                 className={`${
-                  activeTab === tab ? "text-primary-500" : "text-typography-600"
+                  activeCategory === cat
+                    ? "text-primary-500"
+                    : "text-typography-600"
                 } font-medium`}
               >
-                {tab.title}
+                {cat}
               </Text>
             </Pressable>
           ))}
@@ -60,82 +62,27 @@ const HomestayInfoTabs = ({ tabs, activeTab, setActiveTab }: any) => {
   );
 };
 
-// Sample Tabs and Data
-const tabs = [{ title: "Tropical" }];
-
-const tabsData = [
-  {
-    name: "tropical",
-    data: [
-      {
-        title: "ImageView Inn",
-        src: require("@/assets/FAST-LOGO.png"),
-        description:
-          "401 Platte River Rd, Gothenburg, United States 01 Platte River Rd, Gothenburg, United States 01 Platte River Rd, Gothenburg, United States 01 Platte River Rd, Gothenburg, United States 01 Platte River Rd, Gothenburg, United States",
-        price: "$1,481",
-        rating: 4.9,
-      },
-      {
-        title: "Spinner Resort",
-        src: require("@/assets/FAST-LOGO.png"),
-        description: "1502 Silica Ave, Sacramento California",
-        price: "$1,381",
-        rating: 4.89,
-      },
-      {
-        title: "DropDown Den",
-        src: require("@/assets/FAST-LOGO.png"),
-        description: "2945 Entry Point Blvd, Kissimmee, Florida",
-        price: "$2,481",
-        rating: 4.6,
-      },
-    ],
-  },
-];
-
-const HighlightText = ({
-  text,
-  highlight,
-  numberOfLines = 1,
-}: {
-  text: string;
-  highlight: string;
-  numberOfLines?: number;
-}) => {
-  if (!highlight) {
-    return (
-      <Text numberOfLines={numberOfLines} ellipsizeMode="tail">
-        {text}
-      </Text>
-    );
-  }
-
-  const regex = new RegExp(`(${highlight})`, "gi");
-  const parts = text.split(regex);
-
-  return (
-    <Text numberOfLines={numberOfLines} ellipsizeMode="tail">
-      {parts.map((part, i) =>
-        part.toLowerCase() === highlight.toLowerCase() ? (
-          <Text key={i} className="bg-yellow-200">
-            {part}
-          </Text>
-        ) : (
-          <Text key={i}>{part}</Text>
-        )
-      )}
-    </Text>
-  );
-};
-
 // Tab Panel with Search Filtering
-const TabPanelData = ({ activeTab, searchQuery, setShowActionsheet }: any) => {
-  const [likes, setLikes] = React.useState<string[]>([]);
-
-  const data =
-    tabsData.find(
-      (tab) => tab.name.toLowerCase() === activeTab.title.toLowerCase()
-    )?.data || [];
+const TabPanelData = ({
+  activeCategory,
+  searchQuery,
+  setShowActionsheet,
+  setSelectedProduct,
+  products,
+  likes,
+  setLikes,
+}: {
+  activeCategory: string;
+  searchQuery: string;
+  setShowActionsheet: React.Dispatch<React.SetStateAction<boolean>>;
+  setSelectedProduct: React.Dispatch<React.SetStateAction<Product | null>>;
+  products: Product[];
+  likes: string[];
+  setLikes: React.Dispatch<React.SetStateAction<string[]>>;
+}) => {
+  const data: Product[] = products.filter(
+    (product) => product.category.toLowerCase() === activeCategory.toLowerCase()
+  );
 
   const filteredData = data.filter(
     (item) =>
@@ -146,20 +93,23 @@ const TabPanelData = ({ activeTab, searchQuery, setShowActionsheet }: any) => {
   return (
     <>
       <VStack className="flex-1">
-        {filteredData.map((image: any, index: any) => (
+        {filteredData.map((product: Product, index: number) => (
           <Box
             key={index}
             className={`flex-1 my-4 lg:my-0 ${
               index === 0 ? "lg:ml-0" : "lg:ml-2"
             } ${index === filteredData.length - 1 ? "lg:mr-0" : "lg:mr-2"}`}
           >
-            <Pressable
+            <TouchableOpacity
               className="w-full"
-              onPress={() => setShowActionsheet(true)}
+              onPress={() => {
+                setSelectedProduct(product);
+                setShowActionsheet(true);
+              }}
             >
               <Box className="overflow-hidden rounded-md h-72">
                 <Image
-                  source={image.src}
+                  source={product.image || ""}
                   className="w-full contain h-72"
                   alt="product image"
                 />
@@ -168,12 +118,12 @@ const TabPanelData = ({ activeTab, searchQuery, setShowActionsheet }: any) => {
               <HStack className="justify-between py-2 items-start">
                 <VStack space="sm" className="flex-1">
                   <HighlightText
-                    text={image.title}
+                    text={product.title}
                     highlight={searchQuery}
                     numberOfLines={1}
                   />
                   <HighlightText
-                    text={image.description}
+                    text={product.description}
                     highlight={searchQuery}
                     numberOfLines={2}
                   />
@@ -182,25 +132,25 @@ const TabPanelData = ({ activeTab, searchQuery, setShowActionsheet }: any) => {
                       size="sm"
                       className="font-semibold text-typography-900"
                     >
-                      {image.price}
+                      {product.price}
                     </Text>
                   </HStack>
                 </VStack>
                 <Pressable
                   onPress={() => {
-                    if (likes.includes(image.title)) {
+                    if (likes.includes(product.title)) {
                       setLikes((prev) =>
-                        prev.filter((like: any) => like !== image.title)
+                        prev.filter((like: any) => like !== product.id)
                       );
                     } else {
-                      setLikes((prev) => [...prev, image.title]);
+                      setLikes((prev) => [...prev, product.id]);
                     }
                   }}
                   className="absolute top-3 right-4 h-6 w-6 justify-center items-center"
                 >
                   <AnimatePresence>
                     <Motion.View
-                      key={likes.includes(image.title) ? "liked" : "unliked"}
+                      key={likes.includes(product.title) ? "liked" : "unliked"}
                       initial={{ scale: 1.3 }}
                       animate={{ scale: 1 }}
                       exit={{ scale: 0.9 }}
@@ -216,7 +166,7 @@ const TabPanelData = ({ activeTab, searchQuery, setShowActionsheet }: any) => {
                         as={Heart}
                         size="lg"
                         className={`${
-                          likes.includes(image.title)
+                          likes.includes(product.title)
                             ? "fill-red-500 stroke-red-500"
                             : "fill-gray-500 stroke-white"
                         }`}
@@ -225,7 +175,7 @@ const TabPanelData = ({ activeTab, searchQuery, setShowActionsheet }: any) => {
                   </AnimatePresence>
                 </Pressable>
               </HStack>
-            </Pressable>
+            </TouchableOpacity>
           </Box>
         ))}
       </VStack>
@@ -235,51 +185,67 @@ const TabPanelData = ({ activeTab, searchQuery, setShowActionsheet }: any) => {
 
 // Homestay Section with Tabs and Panel
 const HomestayInformationFold = ({ searchQuery }: any) => {
-  const [activeTab, setActiveTab] = React.useState(tabs[0]);
+  const [activeCategory, setActiveCategory] = React.useState<string>("abc");
+  const [categories, setCategories] = React.useState<string[]>([]);
   const [showActionsheet, setShowActionsheet] = React.useState(false);
+  const [products, setProducts] = React.useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(
+    null
+  );
+  const [likes, setLikes] = React.useState<string[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const snapshot = await firestore().collection("products").get();
+      const db_products: Product[] = snapshot.docs.map((doc) =>
+        doc.data()
+      ) as Product[];
+      console.log("db_products", db_products);
+      setProducts(db_products);
+      setCategories(
+        Array.from(new Set(products.map((product) => product.category)))
+      );
+    })();
+  }, []);
   const handleClose = () => setShowActionsheet(false);
   return (
     <>
       <Box className="px-2 pt-2 border-white-200">
         <HomestayInfoTabs
-          tabs={tabs}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          categories={categories}
+          activeCategory={activeCategory}
+          setActiveCategory={setActiveCategory}
         />
       </Box>
       <ScrollView className="px-4 md:px-0 flex-1">
         <TabPanelData
           setShowActionsheet={setShowActionsheet}
-          activeTab={activeTab}
+          activeCategory={activeCategory}
+          products={products}
+          setSelectedProduct={setSelectedProduct}
           searchQuery={searchQuery}
+          likes={likes}
+          setLikes={setLikes}
         />
       </ScrollView>
       <Actionsheet
         isOpen={showActionsheet}
         onClose={handleClose}
-        snapPoints={[75]}
+        snapPoints={[80]}
       >
         <ActionsheetBackdrop />
         <ActionsheetContent>
-          <ActionsheetDragIndicatorWrapper className="py-4">
+          <ActionsheetDragIndicatorWrapper className="py-2">
             <ActionsheetDragIndicator />
           </ActionsheetDragIndicatorWrapper>
-          <ModalContent />
-          <ActionsheetItem onPress={handleClose}>
-            <ActionsheetItemText>Edit Message</ActionsheetItemText>
-          </ActionsheetItem>
-          <ActionsheetItem onPress={handleClose}>
-            <ActionsheetItemText>Mark Unread</ActionsheetItemText>
-          </ActionsheetItem>
-          <ActionsheetItem onPress={handleClose}>
-            <ActionsheetItemText>Remind Me</ActionsheetItemText>
-          </ActionsheetItem>
-          <ActionsheetItem onPress={handleClose}>
-            <ActionsheetItemText>Add to Saved Items</ActionsheetItemText>
-          </ActionsheetItem>
-          <ActionsheetItem isDisabled onPress={handleClose}>
-            <ActionsheetItemText>Delete</ActionsheetItemText>
-          </ActionsheetItem>
+          {selectedProduct && (
+            <ModalContent
+              selectedProduct={selectedProduct}
+              handleClose={handleClose}
+              likes={likes}
+              setLikes={setLikes}
+            />
+          )}
         </ActionsheetContent>
       </Actionsheet>
     </>
@@ -308,41 +274,3 @@ const Home = () => {
 };
 
 export default Home;
-
-function ModalContent() {
-  return (
-    <Card className="rounded-lg max-w-[360px] ">
-      <VStack className="mb-6">
-        <Heading size="md" className="mb-4">
-          The Power of Positive Thinking
-        </Heading>
-        <Text className="text-sm font-normal mb-2 text-typography-700">
-          May 15, 2023
-        </Text>
-        <Text size="sm">
-          Discover how the power of positive thinking can transform your life,
-          boost your confidence, and help you overcome challenges. Explore
-          practical tips and techniques to cultivate a positive mindset for
-          greater happiness and success.
-        </Text>
-      </VStack>
-      <Box className="flex-row">
-        <Avatar className="mr-3">
-          <AvatarFallbackText>RR</AvatarFallbackText>
-          <AvatarImage
-            source={{
-              uri: "https://gluestack.github.io/public-blog-video-assets/john.png",
-            }}
-            alt="image"
-          />
-        </Avatar>
-        <VStack>
-          <Heading size="sm" className="mb-1">
-            John Smith
-          </Heading>
-          <Text size="sm">Motivational Speaker</Text>
-        </VStack>
-      </Box>
-    </Card>
-  );
-}

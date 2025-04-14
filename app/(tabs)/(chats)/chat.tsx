@@ -9,8 +9,8 @@ import {
 import firestore from "@react-native-firebase/firestore";
 import { useAuthStore } from "@/stores/authStore";
 import { useLocalSearchParams } from "expo-router";
-import { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import Message from "@/types/Message";
+import User from "@/types/User";
 
 const Chat = () => {
   const {
@@ -22,7 +22,7 @@ const Chat = () => {
   const [newMessage, setNewMessage] = useState("");
 
   const [participantData, setParticipantData] =
-    useState<FirebaseAuthTypes.User | null>(null);
+    useState<User | null>(null);
 
   useEffect(() => {
     const fetchParticipantData = async () => {
@@ -32,7 +32,7 @@ const Chat = () => {
           .doc(otherParticipantId)
           .get();
         if (userDoc.exists) {
-          setParticipantData(userDoc.data() as FirebaseAuthTypes.User);
+          setParticipantData(userDoc.data() as User);
         }
       }
     };

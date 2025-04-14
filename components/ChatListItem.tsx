@@ -1,5 +1,6 @@
 import { useAuthStore } from "@/stores/authStore";
 import Chat from "@/types/Chat";
+import User from "@/types/User";
 import { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { router } from "expo-router";
@@ -10,7 +11,7 @@ const ChatListItem = ({ item }: { item: Chat }) => {
   const { user } = useAuthStore();
   const otherParticipantId = item.participants.find((uid) => uid !== user?.uid);
   const [participantData, setParticipantData] =
-    useState<FirebaseAuthTypes.User | null>(null);
+    useState<User | null>(null);
 
   useEffect(() => {
     const fetchParticipantData = async () => {
@@ -20,7 +21,7 @@ const ChatListItem = ({ item }: { item: Chat }) => {
           .doc(otherParticipantId)
           .get();
         if (userDoc.exists) {
-          setParticipantData(userDoc.data() as FirebaseAuthTypes.User);
+          setParticipantData(userDoc.data() as User);
         }
       }
     };

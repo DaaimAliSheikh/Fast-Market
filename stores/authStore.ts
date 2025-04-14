@@ -1,10 +1,7 @@
 // stores/authStore.ts
 import { create } from "zustand";
 
-import auth, {
-  FirebaseAuthTypes,
-  sendPasswordResetEmail,
-} from "@react-native-firebase/auth";
+import auth, { sendPasswordResetEmail } from "@react-native-firebase/auth";
 import {
   GoogleSignin,
   statusCodes,
@@ -14,9 +11,10 @@ GoogleSignin.configure({
     "804166405034-60gj29modojbnnv9vbaj3ii4eguc82sm.apps.googleusercontent.com", ///from firebase console
 });
 import firestore from "@react-native-firebase/firestore";
+import User from "@/types/User";
 
 interface AuthState {
-  user: FirebaseAuthTypes.User | null;
+  user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | undefined>;
   signUp: (
@@ -25,7 +23,7 @@ interface AuthState {
     password: string
   ) => Promise<string | undefined>;
   logOut: () => Promise<string | undefined>;
-  setUser: (user: FirebaseAuthTypes.User | null) => void;
+  setUser: (user: User | null) => void;
   signInWithGoogle: () => Promise<string | undefined>;
   resetPasswordEmail: (email: string) => Promise<string | undefined>;
 }
@@ -41,7 +39,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email,
         password
       );
-      set({ user: userCredential.user }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
+      const querySnapshot = await firestore()
+        .collection("users")
+        .where("uid", "==", userCredential.user.uid)
+        .get();
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data() as User;
+      set({
+        user: {
+          ...userCredential.user,
+          favoriteProductIds: userData?.favoriteProductIds || ([] as string[]),
+        },
+      }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
 
       ///onauthstatechanged in the root layout will handle setting the user state
     } catch (error: any) {
@@ -64,13 +73,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Optionally, fetch the updated user
       const updatedUser = auth().currentUser;
-      await firestore().collection("users").add({
-        uid: updatedUser?.uid,
-        displayName: updatedUser?.displayName,
-        email: updatedUser?.email,
-        photoURL: updatedUser?.photoURL,
-      });
-      set({ user: updatedUser }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
+      if (!updatedUser) {
+        set({ user: null });
+        return;
+      }
+      await firestore()
+        .collection("users")
+        .add({
+          uid: updatedUser?.uid,
+          displayName: updatedUser?.displayName,
+          email: updatedUser?.email,
+          photoURL: updatedUser?.photoURL,
+          favoriteProductIds: [] as string[],
+        });
+
+      set({ user: { ...updatedUser, favoriteProductIds: [] } }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
 
       ///onauthstatechanged in the root layout will handle setting the user state
     } catch (error: any) {
@@ -104,13 +121,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         googleCredential
       );
       const user = userCredential.user;
-      await firestore().collection("users").add({
-        uid: user?.uid,
-        displayName: user?.displayName,
-        email: user?.email,
-        photoURL: user?.photoURL,
-      });
-      set({ user: userCredential.user }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
+      const docRef =
+        userCredential.additionalUserInfo?.isNewUser &&
+        (await firestore()
+          .collection("users")
+          .add({
+            uid: user?.uid,
+            displayName: user?.displayName,
+            email: user?.email,
+            photoURL: user?.photoURL,
+            favoriteProductIds: [] as string[],
+          }));
+      let favoriteProductIds: string[] = [];
+      if (docRef) {
+        const docSnapshot = await docRef.get();
+        const userData = docSnapshot.data();
+        favoriteProductIds = userData?.favoriteProductIds || [];
+      }
+      set({ user: { ...userCredential.user, favoriteProductIds } }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
 
       ///onauthstatechanged in the root layout will handle setting the user state
     } catch (error: any) {

@@ -5,7 +5,8 @@ import { useEffect } from "react";
 import auth from "@react-native-firebase/auth";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "@/global.css";
-import { StatusBar, Text } from "react-native";
+import { StatusBar } from "react-native";
+import firestore from "@react-native-firebase/firestore";
 
 export default function RootLayout() {
   const { setUser } = useAuthStore();
@@ -14,8 +15,21 @@ export default function RootLayout() {
   // If token expired/invalid, user will be set to null
 
   useEffect(() => {
-    const subscriber = auth().onAuthStateChanged((user) => {
-      setUser(user);
+    const subscriber = auth().onAuthStateChanged(async (user) => {
+      if (!user) {
+        setUser(null);
+        return;
+      }
+      const querySnapshot = await firestore()
+        .collection("users")
+        .where("uid", "==", user.uid)
+        .get();
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
+      setUser({
+        ...user,
+        favoriteProductIds: userData?.favoriteProductIds || ([] as string[]),
+      });
     });
     return subscriber; // unsubscribe on unmount
   }, []);

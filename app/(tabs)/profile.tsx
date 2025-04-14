@@ -1,10 +1,10 @@
 import { View, Text } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import { Button, ButtonText } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
 
 const profile = () => {
-  const { logOut } = useAuthStore();
+  const { logOut, user } = useAuthStore();
 
   return (
     <View>
