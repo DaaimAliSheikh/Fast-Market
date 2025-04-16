@@ -1,8 +1,10 @@
-import { FirebaseAuthTypes } from "@react-native-firebase/auth";
-
-interface User extends FirebaseAuthTypes.User {
+interface User {
+  ///this type represents the user info stored in the users collection in firestore
+  uid: string;
+  displayName: string;
+  email: string;
+  photoURL: string;
   favoriteProductIds: string[];
-  // Add other custom fields as needed
 }
 
 export default User;

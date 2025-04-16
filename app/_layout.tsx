@@ -15,21 +15,8 @@ export default function RootLayout() {
   // If token expired/invalid, user will be set to null
 
   useEffect(() => {
-    const subscriber = auth().onAuthStateChanged(async (user) => {
-      if (!user) {
-        setUser(null);
-        return;
-      }
-      const querySnapshot = await firestore()
-        .collection("users")
-        .where("uid", "==", user.uid)
-        .get();
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data();
-      setUser({
-        ...user,
-        favoriteProductIds: userData?.favoriteProductIds || ([] as string[]),
-      });
+    const subscriber = auth().onAuthStateChanged( (user) => {
+      setUser(user);
     });
     return subscriber; // unsubscribe on unmount
   }, []);

@@ -1,7 +1,10 @@
 // stores/authStore.ts
 import { create } from "zustand";
 
-import auth, { sendPasswordResetEmail } from "@react-native-firebase/auth";
+import auth, {
+  FirebaseAuthTypes,
+  sendPasswordResetEmail,
+} from "@react-native-firebase/auth";
 import {
   GoogleSignin,
   statusCodes,
@@ -14,7 +17,7 @@ import firestore from "@react-native-firebase/firestore";
 import User from "@/types/User";
 
 interface AuthState {
-  user: User | null;
+  user: FirebaseAuthTypes.User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | undefined>;
   signUp: (
@@ -23,7 +26,7 @@ interface AuthState {
     password: string
   ) => Promise<string | undefined>;
   logOut: () => Promise<string | undefined>;
-  setUser: (user: User | null) => void;
+  setUser: (user: FirebaseAuthTypes.User | null) => void;
   signInWithGoogle: () => Promise<string | undefined>;
   resetPasswordEmail: (email: string) => Promise<string | undefined>;
 }
@@ -39,18 +42,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email,
         password
       );
-      const querySnapshot = await firestore()
-        .collection("users")
-        .where("uid", "==", userCredential.user.uid)
-        .get();
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data() as User;
-      set({
-        user: {
-          ...userCredential.user,
-          favoriteProductIds: userData?.favoriteProductIds || ([] as string[]),
-        },
-      }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
+      set({ user: userCredential.user }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
 
       ///onauthstatechanged in the root layout will handle setting the user state
     } catch (error: any) {
@@ -73,21 +65,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Optionally, fetch the updated user
       const updatedUser = auth().currentUser;
-      if (!updatedUser) {
-        set({ user: null });
-        return;
-      }
+
       await firestore()
         .collection("users")
-        .add({
-          uid: updatedUser?.uid,
+        .doc(updatedUser?.uid)
+        .set({
           displayName: updatedUser?.displayName,
           email: updatedUser?.email,
           photoURL: updatedUser?.photoURL,
           favoriteProductIds: [] as string[],
         });
 
-      set({ user: { ...updatedUser, favoriteProductIds: [] } }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
+      set({ user: updatedUser }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
 
       ///onauthstatechanged in the root layout will handle setting the user state
     } catch (error: any) {
@@ -121,24 +110,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         googleCredential
       );
       const user = userCredential.user;
-      const docRef =
-        userCredential.additionalUserInfo?.isNewUser &&
+      userCredential.additionalUserInfo?.isNewUser &&
         (await firestore()
           .collection("users")
-          .add({
-            uid: user?.uid,
+          .doc(user?.uid)
+          .set({
             displayName: user?.displayName,
             email: user?.email,
             photoURL: user?.photoURL,
             favoriteProductIds: [] as string[],
           }));
-      let favoriteProductIds: string[] = [];
-      if (docRef) {
-        const docSnapshot = await docRef.get();
-        const userData = docSnapshot.data();
-        favoriteProductIds = userData?.favoriteProductIds || [];
-      }
-      set({ user: { ...userCredential.user, favoriteProductIds } }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
+
+      set({ user: userCredential.user }); ///setting to user by myself because the onauthstatechanged takes a slight time delay to set it to user
 
       ///onauthstatechanged in the root layout will handle setting the user state
     } catch (error: any) {

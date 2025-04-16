@@ -21,8 +21,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
 
-  const [participantData, setParticipantData] =
-    useState<User | null>(null);
+  const [participantData, setParticipantData] = useState<User | null>(null);
 
   useEffect(() => {
     const fetchParticipantData = async () => {

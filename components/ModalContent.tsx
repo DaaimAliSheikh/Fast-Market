@@ -14,7 +14,6 @@ import { Button, ButtonText } from "./ui/button";
 import Product from "@/types/Product";
 import React, { useEffect, useState } from "react";
 import firestore from "@react-native-firebase/firestore";
-import { router } from "expo-router";
 import { useAuthStore } from "@/stores/authStore";
 import User from "@/types/User";
 import addProductToFavorites from "@/utils/addProductToFavorites";
@@ -34,9 +33,8 @@ function ModalContent({
   setLikes: React.Dispatch<React.SetStateAction<string[]>>;
 }) {
   const [seller, setSeller] = useState<User | null>(null);
-  const [liked, setLiked] = useState(false);
-  const { user } = useAuthStore();
 
+  const { user } = useAuthStore();
   const onStartChat = async () => {
     handleClose();
     /////create new chat, or find existing chat
@@ -49,8 +47,7 @@ function ModalContent({
     // });
   };
   const onFavorite = async () => {
-    setLiked(!liked);
-    if (likes.includes(selectedProduct.title)) {
+    if (likes.includes(selectedProduct.id)) {
       setLikes((prev) =>
         prev.filter((like: any) => like !== selectedProduct.id)
       );
@@ -62,16 +59,16 @@ function ModalContent({
   useEffect(() => {
     const fetchSellerData = async () => {
       try {
-        const querySnapshot = await firestore()
+        const docSnapshot = await firestore()
           .collection("users")
-          .where("uid", "==", selectedProduct.sellerId)
+          .doc(selectedProduct.sellerId)
           .get();
-        const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data() as User;
-        if (userData) {
-          setSeller(userData as User);
+
+        if (docSnapshot.exists) {
+          const userData = docSnapshot.data() as User;
+          setSeller(userData);
         } else {
-          console.warn("Seller not found in Firestore");
+          console.warn("Seller not found");
         }
       } catch (error) {
         console.error("Error fetching seller data:", error);
@@ -81,14 +78,14 @@ function ModalContent({
     fetchSellerData();
   }, []);
   return (
-    <ScrollView className="h-[60vh] border mb-14">
+    <ScrollView className="h-[60vh]  mb-14">
       <Card className="rounded-lg  max-w-[360px] ">
         <VStack className="mb-6">
           <Heading size="md" className="mb-4">
             {selectedProduct.title}
           </Heading>
           <Text className="text-sm font-normal mb-2 text-typography-700">
-            {selectedProduct.price}
+            {"PKR " + selectedProduct.price}
           </Text>
           <Text size="sm">{selectedProduct.description}</Text>
         </VStack>
@@ -146,7 +143,7 @@ function ModalContent({
                   as={Heart}
                   size="lg"
                   className={`${
-                    liked
+                    likes.includes(selectedProduct.id)
                       ? "fill-red-500 stroke-red-500"
                       : "fill-gray-500 stroke-white"
                   }`}

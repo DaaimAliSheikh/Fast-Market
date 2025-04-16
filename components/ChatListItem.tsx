@@ -10,8 +10,7 @@ import { View, Text, TouchableOpacity, Image } from "react-native";
 const ChatListItem = ({ item }: { item: Chat }) => {
   const { user } = useAuthStore();
   const otherParticipantId = item.participants.find((uid) => uid !== user?.uid);
-  const [participantData, setParticipantData] =
-    useState<User | null>(null);
+  const [participantData, setParticipantData] = useState<User | null>(null);
 
   useEffect(() => {
     const fetchParticipantData = async () => {
