@@ -2,17 +2,24 @@ import { Redirect, Tabs } from "expo-router";
 import { useAuthStore } from "../../stores/authStore";
 import LoadingPage from "@/components/LoadingPage";
 import { Home, MessageCircle, Plus, User } from "lucide-react-native";
+import { usePathname } from "expo-router";
 
 export default function AppLayout() {
   const { user, loading } = useAuthStore();
+  const pathname = usePathname();
+  const isChatScreen = pathname === "/chat";
+  console.log(pathname);
   if (loading) return <LoadingPage />;
   else if (!user) return <Redirect href="/(auth)/login" />;
-  //render index which redirects to dashboard
   else
     return (
       <Tabs
         screenOptions={{
-          tabBarStyle: { height: 60, paddingTop: 3 }, // Adjust the height as needed
+          tabBarStyle: {
+            height: 60,
+            paddingTop: 3,
+            display: isChatScreen ? "none" : "flex",
+          }, // Adjust the height as needed
           headerStyle: {
             backgroundColor: "transparent",
             height: 60,
@@ -42,7 +49,9 @@ export default function AppLayout() {
           name="(chats)"
           options={{
             title: "Chats",
+            
             headerShown: false,
+            popToTopOnBlur: true,
             tabBarIcon: ({ color }) => <MessageCircle color={color} />,
           }}
         />

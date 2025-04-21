@@ -8,40 +8,54 @@ import {
 } from "react-native";
 import firestore from "@react-native-firebase/firestore";
 import { useAuthStore } from "@/stores/authStore";
-import { useLocalSearchParams } from "expo-router";
 import Message from "@/types/Message";
 import User from "@/types/User";
+import { useSelectedChatStore } from "@/stores/chatStore";
+import { Icon } from "@/components/ui/icon";
+import { CheckCheck } from "lucide-react-native";
+import { HStack } from "@/components/ui/hstack";
+import { VStack } from "@/components/ui/vstack";
 
 const Chat = () => {
-  const {
-    chatId,
-    otherParticipantId,
-  }: { chatId: string; otherParticipantId: string } = useLocalSearchParams();
+  const { selectedChat, setSelectedChat } = useSelectedChatStore();
   const { user } = useAuthStore();
-  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-
-  const [participantData, setParticipantData] = useState<User | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [seller, setSeller] = useState<User | null>(null);
+  const [selectedProduct, setSelectedProductId] = useState<User | null>(null);
 
   useEffect(() => {
     const fetchParticipantData = async () => {
+      const otherParticipantId = selectedChat?.participants.find(
+        (p) => p !== user?.uid
+      );
       if (otherParticipantId) {
         const userDoc = await firestore()
           .collection("users")
           .doc(otherParticipantId)
           .get();
         if (userDoc.exists) {
-          setParticipantData(userDoc.data() as User);
+          setSeller(userDoc.data() as User);
         }
       }
     };
     fetchParticipantData();
-  }, [otherParticipantId]);
+    const fetchProduct = async () => {
+      const userDoc = await firestore()
+        .collection("products")
+        .doc(selectedChat?.selectedProductId)
+        .get();
+      if (userDoc.exists) {
+        setSelectedProductId(userDoc.data() as User);
+      }
+    };
+    fetchParticipantData();
+  }, [selectedChat]);
 
   useEffect(() => {
     const unsubscribe = firestore()
       .collection("chats")
-      .doc(chatId)
+      .doc(selectedChat?.id)
       .collection("messages")
       .orderBy("timestamp", "asc")
       .onSnapshot((querySnapshot) => {
@@ -49,12 +63,13 @@ const Chat = () => {
           id: doc.id,
           ...doc.data(),
         })) as Message[];
+
         setMessages(msgs);
         markMessagesAsRead(msgs);
       });
 
     return () => unsubscribe();
-  }, [chatId]);
+  }, [selectedChat]);
 
   const markMessagesAsRead = async (msgs: Message[]) => {
     const unreadMessages = msgs.filter(
@@ -67,7 +82,7 @@ const Chat = () => {
     unreadMessages.forEach((msg) => {
       const msgRef = firestore()
         .collection("chats")
-        .doc(chatId)
+        .doc(selectedChat?.id)
         .collection("messages")
         .doc(msg.id);
       batch.update(msgRef, {
@@ -89,11 +104,11 @@ const Chat = () => {
 
     await firestore()
       .collection("chats")
-      .doc(chatId)
+      .doc(selectedChat?.id)
       .collection("messages")
       .add(message);
 
-    await firestore().collection("chats").doc(chatId).update({
+    await firestore().collection("chats").doc(selectedChat?.id).update({
       lastMessage: newMessage,
       timestamp: firestore.FieldValue.serverTimestamp(),
     });
@@ -109,12 +124,17 @@ const Chat = () => {
     const readReceipt = isCurrentUser && item.readBy.length > 1 ? "Read" : "";
 
     return (
-      <View className={`p-3 m-2 rounded-lg max-w-3/4 ${messageStyle}`}>
+      <VStack className={`p-3 m-2 rounded-lg max-w-3/4 ${messageStyle}`}>
         <Text>{item.text}</Text>
-        {readReceipt ? (
-          <Text className="text-xs text-gray-500 mt-1">{readReceipt}</Text>
-        ) : null}
-      </View>
+        <HStack space="sm" className="items-center justify-end mt-1">
+          <Text className="text-xs">
+            {item.timestamp
+              .toDate()
+              .toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+          </Text>
+          {readReceipt ? <Icon as={CheckCheck} color="white" /> : null}
+        </HStack>
+      </VStack>
     );
   };
 

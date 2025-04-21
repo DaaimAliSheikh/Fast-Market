@@ -2,7 +2,7 @@ import Message from "./Message";
 
 interface Chat {
   id: string;
-  targetProductId: string;
+  selectedProductId: string;
   participants: string[];
   lastMessage: string;
   messages: Message[];

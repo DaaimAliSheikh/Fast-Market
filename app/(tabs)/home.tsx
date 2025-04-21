@@ -1,11 +1,8 @@
 import React, { useEffect } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { SearchIcon } from "lucide-react-native";
 import { Box } from "@/components/ui/box";
-import { HStack } from "@/components/ui/hstack";
-import { Pressable } from "react-native";
-import { Text } from "@/components/ui/text";
 
 import firestore from "@react-native-firebase/firestore";
 import {
@@ -36,7 +33,10 @@ const ProductsList = ({ searchQuery }: any) => {
   const { user } = useAuthStore();
 
   const fetchProducts = async () => {
-    const snapshot = await firestore().collection("products").get();
+    const snapshot = await firestore()
+      .collection("products")
+      .where("sellerId", "not-in", [user?.uid, null])
+      .get();
     const db_products: Product[] = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
@@ -85,19 +85,17 @@ const ProductsList = ({ searchQuery }: any) => {
           setActiveCategory={setActiveCategory}
         />
       </Box>
-      <ScrollView className="px-4 md:px-0 flex-1">
-        <TabPanelData
-          setShowActionsheet={setShowActionsheet}
-          activeCategory={activeCategory}
-          products={products}
-          setSelectedProduct={setSelectedProduct}
-          searchQuery={searchQuery}
-          likes={likes}
-          setLikes={setLikes}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-        />
-      </ScrollView>
+      <TabPanelData
+        setShowActionsheet={setShowActionsheet}
+        activeCategory={activeCategory}
+        products={products}
+        setSelectedProduct={setSelectedProduct}
+        searchQuery={searchQuery}
+        likes={likes}
+        setLikes={setLikes}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+      />
       <Actionsheet
         isOpen={showActionsheet}
         onClose={handleClose}
