@@ -19,7 +19,7 @@ import User from "@/types/User";
 import addProductToFavorites from "@/utils/addProductToFavorites";
 import { AnimatePresence, Motion } from "@legendapp/motion";
 import { Icon } from "./ui/icon";
-import { Heart } from "lucide-react-native";
+import { Ban, Heart } from "lucide-react-native";
 import Chat from "@/types/Chat";
 import { useSelectedChatStore } from "@/stores/chatStore";
 import { router } from "expo-router";
@@ -98,11 +98,17 @@ function ModalContent({
       setLoading(false);
       handleClose();
       // Navigate to chat screen
-      router.push("/(tabs)/(chats)/chat");
+      router.push({
+        pathname: "/(tabs)/(chats)/chatList",
+        params: {
+          openChat: "true", // Flag to indicate navigation to chat screen
+        },
+      });
     } catch (error) {
       console.error("Error starting chat:", error);
     }
   };
+
   const onFavorite = async () => {
     if (likes.includes(selectedProduct.id)) {
       setLikes((prev) =>
@@ -123,6 +129,7 @@ function ModalContent({
 
         if (docSnapshot.exists) {
           const userData = docSnapshot.data() as User;
+
           setSeller(userData);
         } else {
           console.warn("Seller not found");
@@ -146,13 +153,20 @@ function ModalContent({
           </Text>
           <Text size="sm">{selectedProduct.description}</Text>
         </VStack>
-        <Image
-          source={{
-            uri: selectedProduct.image,
-          }}
-          className="mb-6 h-[200px] mx-auto rounded-md aspect-[4/3]"
-          alt="image"
-        />
+        <Box className="overflow-hidden rounded-md h-72 flex justify-center items-center">
+          {selectedProduct.image ? (
+            <Image
+              source={String(selectedProduct.image)}
+              className="w-full contain h-72"
+              alt="product image"
+            />
+          ) : (
+            <>
+              <Icon as={Ban} size="xl" />
+              <Text>No Image</Text>
+            </>
+          )}
+        </Box>
         <Heading size="sm" className="mb-3">
           Seller Information:
         </Heading>
@@ -176,48 +190,52 @@ function ModalContent({
       </Card>
       <Card className="p-5 rounded-lg w-full ">
         <Box className="flex-row  gap-2">
-          <Button
-            className="px-4  py-2 mr-0 mb-3 sm:mr-3 sm:mb-0 flex-1"
-            onPress={onStartChat}
-          >
-            {loading ? (
-              <Spinner color={"white"} />
-            ) : (
-              <ButtonText size="sm">Start Chat</ButtonText>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            className="px-4 py-2 border-outline-300 flex-1 flex-row items-center justify-center"
-            onPress={onFavorite}
-          >
-            <ButtonText size="sm" className="text-typography-600 ">
-              Favorite
-            </ButtonText>
-            <AnimatePresence>
-              <Motion.View
-                initial={{ scale: 1.3 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.9 }}
-                transition={{
-                  type: "spring",
-                  mass: 0.9,
-                  damping: 9,
-                  stiffness: 300,
-                }}
-              >
-                <Icon
-                  as={Heart}
-                  size="lg"
-                  className={`${
-                    likes.includes(selectedProduct.id)
-                      ? "fill-red-500 stroke-red-500"
-                      : "fill-gray-500 stroke-white"
-                  }`}
-                />
-              </Motion.View>
-            </AnimatePresence>
-          </Button>
+          {seller && user?.uid !== selectedProduct.sellerId ? (
+            <Button
+              className="px-4  py-2 mr-0 mb-3 sm:mr-3 sm:mb-0 flex-1"
+              onPress={onStartChat}
+            >
+              {loading ? (
+                <Spinner color={"white"} />
+              ) : (
+                <ButtonText size="sm">Start Chat</ButtonText>
+              )}
+            </Button>
+          ) : null}
+          {user?.uid === selectedProduct.sellerId || (
+            <Button
+              variant="outline"
+              className="px-4 py-2 border-outline-300 flex-1 flex-row items-center justify-center"
+              onPress={onFavorite}
+            >
+              <ButtonText size="sm" className="text-typography-600 ">
+                Favorite
+              </ButtonText>
+              <AnimatePresence>
+                <Motion.View
+                  initial={{ scale: 1.3 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0.9 }}
+                  transition={{
+                    type: "spring",
+                    mass: 0.9,
+                    damping: 9,
+                    stiffness: 300,
+                  }}
+                >
+                  <Icon
+                    as={Heart}
+                    size="lg"
+                    className={`${
+                      likes.includes(selectedProduct.id)
+                        ? "fill-red-500 stroke-red-500"
+                        : "fill-gray-500 stroke-white"
+                    }`}
+                  />
+                </Motion.View>
+              </AnimatePresence>
+            </Button>
+          )}
         </Box>
       </Card>
     </ScrollView>

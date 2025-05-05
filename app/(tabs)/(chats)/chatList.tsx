@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import firestore from "@react-native-firebase/firestore";
 import { useAuthStore } from "@/stores/authStore";
 import Chat from "@/types/Chat";
@@ -9,21 +9,30 @@ import { Spinner } from "@/components/ui/spinner";
 import colors from "tailwindcss/colors";
 import { useSelectedChatStore } from "@/stores/chatStore";
 import User from "@/types/User";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { View, TouchableOpacity, Image, FlatList } from "react-native";
 import ChatWithSellerAndProduct from "@/types/ChatWithSellerAndProduct";
 import Product from "@/types/Product";
 import { Divider } from "@/components/ui/divider";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
+import { useFocusEffect } from "@react-navigation/native";
 
 const ChatList = () => {
   const { user } = useAuthStore();
   const [chats, setChats] = useState<ChatWithSellerAndProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const { selectedChat, setSelectedChat } = useSelectedChatStore();
+  const { openChat } = useLocalSearchParams();
 
   useEffect(() => {
+    if (openChat == "true") {
+      router.push("/(tabs)/(chats)/chat");
+      return;
+    }
+  }, []);
+
+  const runOnFocus = useCallback(() => {
     if (!user?.uid) return;
 
     const unsubscribe = firestore()
@@ -77,7 +86,9 @@ const ChatList = () => {
       });
 
     return () => unsubscribe();
-  }, [user?.uid]);
+  }, []);
+
+  useFocusEffect(runOnFocus);
 
   const renderItem = ({ item }: { item: ChatWithSellerAndProduct }) => {
     return (

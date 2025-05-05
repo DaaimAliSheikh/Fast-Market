@@ -33,9 +33,10 @@ const ProductsList = ({ searchQuery }: any) => {
   const { user } = useAuthStore();
 
   const fetchProducts = async () => {
+    if (!user) return;
     const snapshot = await firestore()
       .collection("products")
-      .where("sellerId", "not-in", [user?.uid, null])
+      .where("sellerId", "!=", user?.uid)
       .get();
     const db_products: Product[] = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -50,13 +51,7 @@ const ProductsList = ({ searchQuery }: any) => {
     setRefreshing(false);
   };
   useEffect(() => {
-    (async () => {
-      const snapshot = await firestore().collection("products").get();
-      const db_products: Product[] = snapshot.docs.map((doc) => {
-        return { id: doc.id, ...doc.data() };
-      }) as Product[];
-      setProducts(db_products);
-    })();
+    fetchProducts();
   }, []);
 
   useEffect(() => {
@@ -64,6 +59,8 @@ const ProductsList = ({ searchQuery }: any) => {
       ...new Set(products.map((product) => product.category)),
     ];
     setCategories(uniqueCategories);
+    if (uniqueCategories && uniqueCategories.length > 0)
+      setActiveCategory(uniqueCategories[0]);
     (async () => {
       const userDoc = await firestore()
         .collection("users")
